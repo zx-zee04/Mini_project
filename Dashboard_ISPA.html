@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Analisis ISPA</title>
+    
+    <!-- SheetJS (XLSX) untuk membaca Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <!-- Chart.js untuk grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Ikon Google (Material Symbols) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <link rel="stylesheet" href="ispa.css">
+</head>
+<body class="app-body">
+
+    <!-- Header (selalu terlihat) -->
+    <header class="app-header">
+        <div class="content-width header-inner">
+            <div class="brand-group">
+                <div class="brand-icon">
+                    <span class="material-symbols-outlined">pulmonology</span>
+                </div>
+                <h1 class="brand-title">Data ISPA</h1>
+            </div>
+            <button id="btn-clear-stored-data" type="button" class="clear-data-button" title="Hapus data Excel yang tersimpan di browser">
+                <span class="material-symbols-outlined button-icon">delete_sweep</span>
+                <span>Hapus Data Tersimpan</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-width app-main">
+
+        <!-- AREA UNGGAH FILE (tampilan awal) -->
+        <div id="upload-section" class="upload-section">
+            <div class="upload-card">
+                <span class="material-symbols-outlined upload-icon">upload_file</span>
+                <h2 class="upload-title">Unggah Data Pasien</h2>
+                <p class="upload-description">Silakan unggah satu atau beberapa file Excel, termasuk <span class="file-name">ISPA SEPTEMBER NEW_.xlsx</span>, untuk mulai menganalisis data.</p>
+                
+                <label class="upload-button">
+                    <span class="material-symbols-outlined button-icon">attach_file</span>
+                    Pilih File Excel
+                    <!-- Dapat memilih beberapa file sekaligus -->
+                    <input type="file" id="file-upload" class="visually-hidden" multiple accept=".xlsx, .xls">
+                </label>
+                
+                <div id="loading-indicator" class="loading-indicator is-hidden">
+                    <span class="material-symbols-outlined loading-icon">progress_activity</span>
+                    <p class="loading-text">Sedang memproses data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AREA DASBOR (tersembunyi pada awalnya) -->
+        <div id="dashboard-section" class="dashboard-section is-hidden">
+            
+            <!-- Bagian Filter -->
+            <div class="filter-panel">
+                <div class="filter-heading">
+                    <span class="material-symbols-outlined">filter_alt</span>
+                    <span class="filter-title">Filter Data:</span>
+                </div>
+                
+                <div class="filter-controls">
+                    <!-- Filter Puskesmas (dropdown) -->
+                    <div class="select-with-icon">
+                        <div class="select-icon">
+                            <span class="material-symbols-outlined">local_hospital</span>
+                        </div>
+                        <select id="filter-puskesmas" class="filter-select filter-select-with-icon">
+                            <option value="semua">Semua Puskesmas</option>
+                        </select>
+                    </div>
+
+                    <select id="filter-diagnosis" class="filter-select">
+                        <option value="semua">Semua Diagnosis</option>
+                    </select>
+
+                    <select id="filter-gender" class="filter-select">
+                        <option value="semua">Semua Jenis Kelamin</option>
+                    </select>
+
+                    <select id="filter-age-range" class="filter-select">
+                        <option value="semua">Semua Rentang Usia</option>
+                    </select>
+
+                    <input type="date" id="filter-date" aria-label="Filter berdasarkan tanggal" class="filter-input">
+
+                    <select id="filter-pain-scale" class="filter-select">
+                        <option value="semua">Semua Skala Nyeri</option>
+                    </select>
+
+                    <!-- Input Pencarian -->
+                    <div class="search-group">
+                        <div class="search-icon">
+                            <span class="material-symbols-outlined">search</span>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Cari nama pasien atau diagnosis..." title="Cari nama pasien atau diagnosis..." aria-label="Cari nama pasien atau diagnosis" class="filter-input search-input">
+                        <button id="btn-reset-filter" class="reset-button">
+                            <span class="material-symbols-outlined button-icon">restart_alt</span>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kartu Ringkasan -->
+            <div class="summary-grid">
+                <!-- Jumlah Keseluruhan -->
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-blue">
+                        <span class="material-symbols-outlined">groups</span>
+                    </div>
+                    <div>
+                        <p class="summary-label">Jumlah Pasien</p>
+                        <h3 id="card-total" class="summary-value">0</h3>
+                    </div>
+                </div>
+                
+                <!-- Ringkasan laki-laki -->
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-green">
+                        <span class="material-symbols-outlined">man</span>
+                    </div>
+                    <div>
+                        <p class="summary-label">Laki-laki</p>
+                        <h3 id="card-male" class="summary-value">0</h3>
+                    </div>
+                </div>
+
+                <!-- Ringkasan perempuan -->
+                <div class="summary-card">
+                    <div class="summary-icon summary-icon-pink">
+                        <span class="material-symbols-outlined">woman</span>
+                    </div>
+                    <div>
+                        <p class="summary-label">Perempuan</p>
+                        <h3 id="card-female" class="summary-value">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafik dan Tabel Data -->
+            <div class="analytics-grid">
+                <!-- Grafik diagnosis dan distribusi usia -->
+                <div class="chart-row">
+                    <!-- Grafik 5 Diagnosis Teratas -->
+                    <div class="chart-card">
+                    <div class="section-heading">
+                        <span class="material-symbols-outlined section-icon">monitoring</span>
+                        <h2 class="section-title">5 Diagnosis Teratas</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="diagnosaChart"></canvas>
+                    </div>
+                    </div>
+
+                    <!-- Grafik distribusi rentang usia -->
+                    <div class="chart-card">
+                        <div class="section-heading">
+                            <span class="material-symbols-outlined section-icon">groups</span>
+                            <h2 class="section-title">Distribusi Rentang Usia</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ageRangeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Data -->
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="section-heading">
+                            <span class="material-symbols-outlined section-icon">table_rows</span>
+                            <h2 class="section-title">Rekam Medis Pasien</h2>
+                        </div>
+                        <div class="table-actions">
+                            <button id="btn-export" type="button" class="pagination-button pagination-button-primary export-button">
+                                <span class="material-symbols-outlined button-icon">download</span> Export
+                            </button>
+                            <span id="table-count" class="table-count">0 Data</span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Puskesmas</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Pasien</th>
+                                    <th class="table-cell-center">Usia</th>
+                                    <th class="table-cell-center">Jenis Kelamin</th>
+                                    <th>Diagnosis</th>
+                                    <th class="table-cell-center">Skala Nyeri</th>
+                                    <th>Alergi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Baris data akan dibuat melalui JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar">
+                        <span id="page-info" class="page-info">Halaman 0 dari 0</span>
+                        <div class="pagination-actions">
+                            <button id="previous-page" type="button" class="pagination-button pagination-button-secondary">Sebelumnya</button>
+                            <button id="next-page" type="button" class="pagination-button pagination-button-primary">Berikutnya</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="ispa.js"></script>
+</body>
+</html>
